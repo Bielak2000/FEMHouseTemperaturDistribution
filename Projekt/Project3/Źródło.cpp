@@ -655,33 +655,15 @@ double srednia(double a, double b, double c, double d)
 
 int main()
 {
-	//powietrze
-	/*double wspKonwWymianyCiepla = 30;
-	double gestos = 1.2;
-	double przedwonoscCiepla = 0.025;
-	double cieplo = 1000;*/
-
-	//drewno
-	/*double wspKonwWymianyCiepla = 30;
-	double gestos = 650;
-	double przedwonoscCiepla = 0.16;
-	double cieplo = 2400;*/
-
-	//drewno
-	//double wspKonwWymianyCiepla = 20;// 0.16 / 0.2;
-	//ocieplenie
-	double wspKonwWymianyCiepla;// 0.16 / 0.2;
+	double wspKonwWymianyCiepla;
 	double gestosc;
 	double przedwonoscCiepla;
 	double cieplo;
 
-	double dt = 3600.0;
-	double tempOtocz = -15.0;
-	double tempPocz = 21.0;
-	int czasSymulacji = 600000;
-
-	//Grid g(961,900);
-	//wczytajSiatke(g);
+	double dt;
+	double tempOtocz;
+	double tempPocz;
+	int czasSymulacji;
 
 	double sz, wy;
 	cout << "Witaj!" << endl;
@@ -707,12 +689,12 @@ int main()
 	cout << "4.Welna szklana" << endl;
 	cin >> wybor;
 
-	double gr;
+	double gr=0;
 	if (wybor == 2 || wybor==3 || wybor==4) 
 	{
 		cout << "Podaj grubosc izolatora: ";
 		cin >> gr;
-		sz += gr;
+		sz =sz+ 2*gr;
 	}
 	system("cls");
 
@@ -722,10 +704,7 @@ int main()
 	cin >> dt;
 	system("cls");
 
-	//bez styrpoianu
     Grid g(wy, sz, 5, 150);
-	//ze steropianem itp
-	//Grid g(2, 5.30, 5, 150);
 	g.initalization_nodes();
 	g.initialization_elements();
 
@@ -788,15 +767,18 @@ int main()
 	f1.open("./wyniki.csv");
 	f1 << "czas; Tmin; Tmax;\n";
 
+	fstream f2;
+	f2.open("./tempWWezlach.csv");
+	f2 << "Time[h]; IDWezla; Temp;\n";
+
 	for (int X = 0; X < czasSymulacji; X += dt)
 	{
-		for (int i = 0; i < g.nE; i++)//tyle ile elementow
+		for (int i = 0; i < g.nE; i++)
 		{
 			sr = srednia(g.nodes[g.elements[i].ID[0] - 1].x, g.nodes[g.elements[i].ID[1] - 1].x, g.nodes[g.elements[i].ID[2] - 1].x, g.nodes[g.elements[i].ID[3] - 1].x);
-			//z ociepleniem
 			if (wybor != 1)
 			{
-				if ((sr > 0 && sr < gr) || (sr > sz+gr && sr < sz+2*gr))//steropian itp
+				if ((sr > 0 && sr < gr) || (sr > sz-gr && sr < sz))
 				{
 					if (wybor == 2)
 					{
@@ -820,53 +802,50 @@ int main()
 						cieplo = 1300;
 					}
 				}
-				else if ((sr > gr && sr < gr+0.2) || (sr > gr+sz-0.2 && sr < sz+gr))//drewno
+				else if ((sr > gr && sr < gr+0.2) || (sr > sz-gr-0.2 && sr < sz))
 				{
 					przedwonoscCiepla = 0.16;
 					gestosc = 650;
 					cieplo = 2400;
 				}
-				else//powietrze
+				else
 				{
 					przedwonoscCiepla = 0.025;
 					gestosc = 1.2;
 					cieplo = 1000;
 				}
 			}
-			//bez ocieplenia
 			else if (wybor == 1)
 			{
-				if ((sr > 0 && sr < 0.20) || (sr > sz-0.2 && sr < sz))//drewno
+				if ((sr > 0 && sr < 0.20) || (sr > sz-0.2 && sr < sz))
 				{
 					przedwonoscCiepla = 0.16;
 					wspKonwWymianyCiepla = przedwonoscCiepla / 0.2;
 					gestosc = 650;
 					cieplo = 2400;
 				}
-				else//powietrze
+				else
 				{
 					przedwonoscCiepla = 0.025;
 					gestosc = 1.2;
 					cieplo = 1000;
 				}
 			}
-			for (int j = 0; j < pow(e.count, 2); j++)//tyle ile punktow calkowania
+			for (int j = 0; j < pow(e.count, 2); j++)
 			{
-				//obliczenia dla danego elementu i pozniej znowu nowy
 				function_jakobian(i, j, &jak, e, g);
 
 				dNdx_dNdy(jak, j, temp, e);
 
 				waga = e.wagiDoC[j % e.count] * e.wagiDoC[j / e.count];
 
-				//H w danym elemencie i punkcie calkowania
 				H(przedwonoscCiepla, temp, temp1, jak, j, waga);
 				C(cieplo, gestosc, e, tempC1, jak.det_jak, j, waga);
 				for (int a = 0; a < 4; a++)
 				{
 					for (int b = 0; b < 4; b++)
 					{
-						temp3.Hp[a][b] += temp1.Hp[a][b];//zawiera H dla danego elementu we wszystkich punktach calkowania
+						temp3.Hp[a][b] += temp1.Hp[a][b];
 						tempC2.Hp[a][b] += tempC1.Hp[a][b];
 					}
 				}
@@ -914,7 +893,7 @@ int main()
 			{
 				if (wyborSciany[j] == 1)
 				{
-					for (int x = 0; x < e.count; x++)//po punktach calkowania
+					for (int x = 0; x < e.count; x++)
 					{
 						HBC(wspKonwWymianyCiepla, e, tempBC, detJ[j], j, x);
 						P(wspKonwWymianyCiepla, e, tempP1, detJ[j], j, x, tempOtocz);
@@ -923,14 +902,14 @@ int main()
 							tempP2[j][a] += tempP1[a];
 							for (int b = 0; b < 4; b++)
 							{
-								tempBC1[j].Hp[a][b] += tempBC.Hp[a][b];//zawiera H dla danego elementu we wszystkich punktach calkowania na kazdej scianie
+								tempBC1[j].Hp[a][b] += tempBC.Hp[a][b];
 
 							}
 						}
 					}
 				}
 			}
-			//zapisanie do elementow
+
 			for (int a = 0; a < 4; a++)
 			{
 				for (int b = 0; b < 4; b++)
@@ -938,7 +917,7 @@ int main()
 					g.elements[i].P[b] += tempP2[a][b];
 					for (int x = 0; x < 4; x++)
 					{
-						g.elements[i].HBC[b][x] += tempBC1[a].Hp[b][x];//dodajemy do elemetnu do hbc warunki brzegowe tego elementu ze wszystkich scian
+						g.elements[i].HBC[b][x] += tempBC1[a].Hp[b][x];
 					}
 				}
 			}
@@ -1027,6 +1006,14 @@ int main()
 		cout << "Time: " << hours <<"h, " << mins <<"min, " << seconds << "s:" << "\t temp min: " << tmin << "\t temp max: " << tmax << endl;
 		f1 << hours << ";" << tmin << ";" << tmax << ";\n";
 
+		if (hours%25==0 || hours%25==5)
+		{
+			for (int u = 0; u < g.nN; u+=g.nH)
+			{
+				f2 << hours << ";" << u + 1 << ";" << t[u] << ";\n";
+			}
+		}
+
 		for (int k = 0; k < g.nN; k++)
 		{
 			CGlobalnePodzieloneZT[k] = 0;
@@ -1047,5 +1034,6 @@ int main()
 	}
 
 	f1.close();
+	f2.close();
 	return 0;
 }
