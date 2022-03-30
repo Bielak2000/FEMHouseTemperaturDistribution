@@ -1,0 +1,2 @@
+WspolczynnikKonwekcyjnejWymianyCiepla gestosc przewdonoscCiepola Wyskosc Szerokosc
+700 7800 25 0.1 0.1
